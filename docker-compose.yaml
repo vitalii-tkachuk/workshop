@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+  app:
+    build:
+      dockerfile: ./build/Dockerfile
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - "80:80"
+
+  postgres:
+    image: postgres:15.1-alpine
+    environment:
+      POSTGRES_USER: "db_user"
+      POSTGRES_PASSWORD: "db_pass"
+      POSTGRES_DB: "workshop"
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+
+volumes:
+  postgres:
