@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 	"workshop/internal/storage"
 
 	"github.com/go-chi/chi/v5"
@@ -25,6 +29,12 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	db.SetMaxIdleConns(1)
+	db.SetMaxOpenConns(10)
+
+	db.SetConnMaxLifetime(5 * time.Second)
+	db.SetConnMaxIdleTime(1 * time.Second)
+
 	repo := storage.NewStorage(db)
 	us := users.NewService(repo)
 
@@ -42,8 +52,23 @@ func main() {
 	})
 
 	s := http.Server{
-		Addr:    ":8080",
-		Handler: r,
+		Addr:         ":8080",
+		Handler:      r,
+		ReadTimeout:  1 * time.Second,
+		WriteTimeout: 1 * time.Second,
+		IdleTimeout:  2 * time.Second,
 	}
-	fmt.Println(s.ListenAndServe())
+
+	go func() {
+		fmt.Println(s.ListenAndServe())
+	}()
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	<-ctx.Done()
+	fmt.Println("signal received")
 }
