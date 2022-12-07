@@ -3,12 +3,13 @@ package storage
 import (
 	"context"
 	"database/sql"
-	_ "github.com/lib/pq"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"workshop/internal/models"
 	"workshop/pkg/integration_testing"
+
+	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const databaseDSN = "host=localhost port=5435 user=db_user password=db_pass dbname=test_workshop sslmode=disable"

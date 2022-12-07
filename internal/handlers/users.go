@@ -2,14 +2,15 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/chi/v5"
 	"net/http"
-	"workshop/internal/users"
-
 	"workshop/internal/models"
+	"workshop/internal/users"
+	"workshop/pkg/logger"
+	"workshop/pkg/response"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type CreateUserParams struct {
@@ -30,48 +31,66 @@ func NewUsers(us UsersService, repo users.Repository) Users {
 	return Users{us, repo}
 }
 
+func (u Users) Routes() http.Handler {
+	r := chi.NewRouter()
+
+	r.Post("/", u.Create)
+	r.Get("/{userId}", u.Get)
+
+	return r
+}
+
 func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	log := logger.FromContext(ctx)
 
 	var userParams CreateUserParams
 	if err := json.NewDecoder(r.Body).Decode(&userParams); err != nil {
-		http.Error(w, "", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("failed to parse params")
+		response.InternalError(w)
 		return
 	}
 
 	user, err := u.user.Create(ctx, userParams.Name)
 	if err != nil {
 		if errors.Is(err, models.UserCreateParamInvalidNameErr) {
-			http.Error(w, "", http.StatusBadRequest)
+			response.BadRequest(w)
+			return
 		}
 
-		http.Error(w, "", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("failed to create user")
+		response.InternalError(w)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(user); err != nil {
-		http.Error(w, "", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("failed to encode response")
+		response.InternalError(w)
 		return
 	}
 }
 
 func (u Users) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	log := logger.FromContext(ctx)
 
 	userID := chi.URLParam(r, "userId")
 
 	user, err := u.repo.GetByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "", http.StatusBadRequest)
+		if errors.Is(err, models.NotFoundErr) {
+			response.NotFound(w)
+			return
 		}
 
-		http.Error(w, "", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("failed to get user")
+		response.InternalError(w)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(user); err != nil {
-		http.Error(w, "", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("failed to encode response")
+		response.InternalError(w)
 		return
 	}
 }

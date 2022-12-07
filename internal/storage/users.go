@@ -3,7 +3,9 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+
 	"github.com/google/uuid"
 	"workshop/internal/models"
 )
@@ -28,12 +30,16 @@ func (s Storage) Create(ctx context.Context, name string) (models.User, error) {
 }
 
 func (s Storage) GetByID(ctx context.Context, ID string) (models.User, error) {
-	usr := &models.User{}
+	var usr models.User
 
 	err := s.db.QueryRowContext(ctx, "SELECT * FROM users WHERE id = $1", ID).Scan(&usr.ID, &usr.Name)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, fmt.Errorf("failed to query user: %w", models.NotFoundErr)
+		}
+
 		return models.User{}, fmt.Errorf("failed to query user: %w", err)
 	}
 
-	return *usr, nil
+	return usr, nil
 }
