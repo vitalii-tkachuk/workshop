@@ -15,6 +15,9 @@ import (
 	"workshop/pkg/dbcollector"
 	"workshop/pkg/logger"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+
 	"google.golang.org/grpc"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -96,7 +99,15 @@ func main() {
 		}
 	}()
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+			grpc_recovery.StreamServerInterceptor(),
+		)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			grpc_recovery.UnaryServerInterceptor(),
+		)),
+	)
+
 	pb.RegisterUsersServer(grpcServer, server.NewUsers(us, ur))
 
 	go func() {
