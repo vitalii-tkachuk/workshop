@@ -5,6 +5,10 @@ import (
 	pb2 "workshop/internal/transport/grpc/pb"
 	"workshop/internal/transport/http/handlers"
 	"workshop/internal/users"
+
+	"google.golang.org/grpc/codes"
+
+	"google.golang.org/grpc/status"
 )
 
 type Users struct {
@@ -20,7 +24,7 @@ func NewUsers(us handlers.UsersService, repo users.Repository) *Users {
 func (u *Users) Create(ctx context.Context, in *pb2.CreateUserRequest) (*pb2.User, error) {
 	user, err := u.user.Create(ctx, in.GetName())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb2.User{Id: user.ID, Name: user.Name}, nil
@@ -29,7 +33,7 @@ func (u *Users) Create(ctx context.Context, in *pb2.CreateUserRequest) (*pb2.Use
 func (u *Users) GetById(ctx context.Context, in *pb2.GetUserByIdRequest) (*pb2.User, error) {
 	user, err := u.repo.GetByID(ctx, in.GetId())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.NotFound, err.Error())
 	}
 
 	return &pb2.User{Id: user.ID, Name: user.Name}, nil
