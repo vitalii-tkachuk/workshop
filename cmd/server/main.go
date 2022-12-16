@@ -3,19 +3,23 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"net"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"workshop/cmd/server/config"
 	"workshop/internal/storage"
+	"workshop/internal/transport/grpc/pb"
+	"workshop/internal/transport/grpc/server"
+	"workshop/internal/transport/http/handlers"
 	"workshop/pkg/dbcollector"
 	"workshop/pkg/logger"
+
+	"google.golang.org/grpc"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"workshop/internal/handlers"
 	"workshop/internal/users"
 
 	"github.com/go-chi/chi/v5"
@@ -72,7 +76,10 @@ func main() {
 
 	r.Mount("/users", uh.Routes())
 
-	s := http.Server{
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+
+	httpServer := http.Server{
 		Addr:    cfg.HTTP.Addr,
 		Handler: r,
 
@@ -83,11 +90,27 @@ func main() {
 	}
 
 	go func() {
-		fmt.Println(s.ListenAndServe())
+		if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+			log.Err(err).Msg("http server error received")
+			stop()
+		}
 	}()
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	defer stop()
+	grpcServer := grpc.NewServer()
+	pb.RegisterUsersServer(grpcServer, server.NewUsers(us, ur))
+
+	go func() {
+		lis, err := net.Listen("tcp", cfg.GRPC.Addr)
+		if err != nil {
+			log.Err(err).Msg("failed to start tcp server")
+			stop()
+		}
+
+		if err := grpcServer.Serve(lis); err != grpc.ErrServerStopped {
+			log.Err(err).Msg("failed to start grpc server")
+			stop()
+		}
+	}()
 
 	<-ctx.Done()
 	log.Info().Msg("signal received")
@@ -96,5 +119,6 @@ func main() {
 	defer cancel()
 
 	log.Info().Msg("shutting down")
-	_ = s.Shutdown(ctx)
+	_ = httpServer.Shutdown(ctx)
+	grpcServer.GracefulStop()
 }
