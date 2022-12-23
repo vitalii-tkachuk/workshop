@@ -3,9 +3,10 @@ package users
 import (
 	"context"
 	"database/sql/driver"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"workshop/internal/models"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const ID = "bacfa697-c25c-48fa-b603-beb4fa53f8eb"

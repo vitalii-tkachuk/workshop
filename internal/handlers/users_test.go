@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"workshop/internal/models"
 	"workshop/internal/users"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUsers_Create(t *testing.T) {
@@ -40,7 +40,7 @@ func TestUsers_Create(t *testing.T) {
 			},
 			args: args{
 				w: httptest.NewRecorder(),
-				r: httptest.NewRequest("POST", "/", strings.NewReader(`{"name": "mike"}`)),
+				r: httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"name": "mike"}`)),
 			},
 			wantCode: http.StatusOK,
 			wantBody: []byte(`{"id":"1","name":"mike"}` + "\n"),
@@ -59,7 +59,7 @@ func TestUsers_Create(t *testing.T) {
 				r: httptest.NewRequest("POST", "/", strings.NewReader(`{"name": ""}`)),
 			},
 			wantCode: http.StatusBadRequest,
-			wantBody: []byte("\n" + "\n"),
+			wantBody: []byte("Bad Request" + "\n"),
 		},
 	}
 
@@ -112,7 +112,7 @@ func TestUsers_Get(t *testing.T) {
 			fields: fields{
 				repo: &users.RepositoryMock{
 					GetByIDFunc: func(ctx context.Context, ID string) (models.User, error) {
-						return models.User{}, sql.ErrNoRows
+						return models.User{}, models.NotFoundErr
 					},
 				},
 			},
@@ -120,8 +120,8 @@ func TestUsers_Get(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest("POST", "/users/1", strings.NewReader(``)),
 			},
-			wantCode: http.StatusBadRequest,
-			wantBody: []byte("\n" + "\n"),
+			wantCode: http.StatusNotFound,
+			wantBody: []byte("Not Found" + "\n"),
 		},
 	}
 
@@ -133,7 +133,7 @@ func TestUsers_Get(t *testing.T) {
 			u.Get(tt.args.w, tt.args.r)
 
 			assert.Equal(t, tt.wantCode, tt.args.w.Code)
-			assert.Equal(t, tt.wantBody, tt.args.w.Body.Bytes(), "unexpected body")
+			assert.Equalf(t, tt.wantBody, tt.args.w.Body.Bytes(), "unexpected body want %s got %s", string(tt.wantBody), string(tt.args.w.Body.Bytes()))
 		})
 	}
 }

@@ -7,6 +7,8 @@ services:
       context: .
     volumes:
       - .:/app
+    environment:
+      DATABASE_DSN: "host=postgres port=5432 user=db_user password=db_pass dbname=workshop sslmode=disable"
     ports:
       - "80:80"
 
