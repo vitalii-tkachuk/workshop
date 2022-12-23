@@ -33,3 +33,16 @@ func (s Service) Create(ctx context.Context, name string) (models.User, error) {
 
 	return usr, nil
 }
+
+func (s Service) Get(ctx context.Context, id string) (models.User, error) {
+	if id == "" {
+		return models.User{}, fmt.Errorf("id is empty: %w", models.InvalidErr)
+	}
+
+	usr, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return models.User{}, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return usr, nil
+}
