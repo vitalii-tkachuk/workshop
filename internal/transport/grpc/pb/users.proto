@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "workshop/internal/transport/pb";
+
+service Users {
+  rpc Create (CreateUserRequest) returns (User) {}
+  rpc GetById (GetUserByIdRequest) returns (User) {}
+}
+
+message User {
+    string id   = 1;
+    string name = 2;
+}
+
+message CreateUserRequest  {
+    string name = 1;
+}
+
+message GetUserByIdRequest  {
+    string id = 1;
+}
