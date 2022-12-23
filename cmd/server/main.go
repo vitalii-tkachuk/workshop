@@ -65,7 +65,7 @@ func main() {
 
 	ur := storage.NewStorage(db)
 	us := users.NewService(ur)
-	uh := handlers.NewUsers(us, ur)
+	uh := handlers.NewUsers(us)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -74,7 +74,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(logger.LoggerMiddleware(log))
 
-	prometheus.MustRegister(dbcollector.NewSQLDatabaseCollector("general", "main", "sqlite", db))
+	prometheus.MustRegister(dbcollector.NewSQLDatabaseCollector("general", "main", "postgres", db))
 	r.Mount("/metrics", promhttp.Handler())
 
 	r.Mount("/users", uh.Routes())
@@ -108,7 +108,7 @@ func main() {
 		)),
 	)
 
-	pb.RegisterUsersServer(grpcServer, server.NewUsers(us, ur))
+	pb.RegisterUsersServer(grpcServer, server.NewUsers(us))
 
 	go func() {
 		lis, err := net.Listen("tcp", cfg.GRPC.Addr)

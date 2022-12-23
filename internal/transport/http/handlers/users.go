@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"workshop/internal/models"
-	"workshop/internal/users"
 	"workshop/pkg/logger"
 	"workshop/pkg/response"
 
@@ -20,15 +19,15 @@ type CreateUserParams struct {
 //go:generate moq -rm -out users_mock.go . UsersService
 type UsersService interface {
 	Create(ctx context.Context, name string) (models.User, error)
+	Get(ctx context.Context, id string) (models.User, error)
 }
 
 type Users struct {
 	user UsersService
-	repo users.Repository
 }
 
-func NewUsers(us UsersService, repo users.Repository) Users {
-	return Users{us, repo}
+func NewUsers(us UsersService) Users {
+	return Users{us}
 }
 
 func (u Users) Routes() http.Handler {
@@ -76,7 +75,7 @@ func (u Users) Get(w http.ResponseWriter, r *http.Request) {
 
 	userID := chi.URLParam(r, "userId")
 
-	user, err := u.repo.GetByID(ctx, userID)
+	user, err := u.user.Get(ctx, userID)
 	if err != nil {
 		if errors.Is(err, models.NotFoundErr) {
 			response.NotFound(w)

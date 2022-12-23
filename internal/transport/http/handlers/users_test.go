@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 	"workshop/internal/models"
-	"workshop/internal/users"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -78,7 +77,7 @@ func TestUsers_Create(t *testing.T) {
 
 func TestUsers_Get(t *testing.T) {
 	type fields struct {
-		repo users.Repository
+		user UsersService
 	}
 	type args struct {
 		w *httptest.ResponseRecorder
@@ -94,8 +93,8 @@ func TestUsers_Get(t *testing.T) {
 		{
 			name: "success",
 			fields: fields{
-				repo: &users.RepositoryMock{
-					GetByIDFunc: func(ctx context.Context, ID string) (models.User, error) {
+				user: &UsersServiceMock{
+					GetFunc: func(ctx context.Context, ID string) (models.User, error) {
 						return models.User{Name: "mike", ID: "1"}, nil
 					},
 				},
@@ -110,8 +109,8 @@ func TestUsers_Get(t *testing.T) {
 		{
 			name: "not found",
 			fields: fields{
-				repo: &users.RepositoryMock{
-					GetByIDFunc: func(ctx context.Context, ID string) (models.User, error) {
+				user: &UsersServiceMock{
+					GetFunc: func(ctx context.Context, ID string) (models.User, error) {
 						return models.User{}, models.NotFoundErr
 					},
 				},
@@ -128,7 +127,7 @@ func TestUsers_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			u := Users{
-				repo: tt.fields.repo,
+				user: tt.fields.user,
 			}
 			u.Get(tt.args.w, tt.args.r)
 
