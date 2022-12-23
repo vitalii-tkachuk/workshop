@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ardanlabs/conf/v3"
 	"workshop/pkg/logger"
+
+	"github.com/ardanlabs/conf/v3"
 )
 
 type Help string
@@ -20,6 +21,7 @@ type Config struct {
 
 	Log  logger.Config
 	HTTP HTTP
+	GRPC GRPC
 	DB   Postgres
 }
 
@@ -37,6 +39,10 @@ type HTTP struct {
 	ReadTimeout  time.Duration `conf:"default:1s"`
 	WriteTimeout time.Duration `conf:"default:1s"`
 	IdleTimeout  time.Duration `conf:"default:5s"`
+}
+
+type GRPC struct {
+	Addr string `conf:"default::50051"`
 }
 
 func New() (Config, Help, error) {
